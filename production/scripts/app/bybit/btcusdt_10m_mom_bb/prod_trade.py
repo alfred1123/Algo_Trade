@@ -1,5 +1,13 @@
 #!/usr/bin/python3
 
+'''
+To do:
+1. record bet_size of strategy for multiple strategy execution in future
+3. telegram message precise and /n
+5. build booking system for equity curve equation and continuously check execution
+6. OOP installation for trade scripts
+'''
+
 import ccxt
 import requests
 import time
@@ -9,6 +17,14 @@ import datetime
 import os
 from dotenv import load_dotenv
 from pprint import pprint
+
+home_dir = os.environ.get('TRADE_HOME_DIR')
+
+sys.path.append(home_dir + '/production/scripts')
+from utils import ThreadSafeFileWriter
+
+log_location = home_dir + '/production/logs/' + datetime.datetime.now().strftime('%Y%m')+'.log'
+
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -114,15 +130,21 @@ pos = 0
 bet_size = 0.03
 
 while True:
+    try:
+        if datetime.datetime.now().second == 5:
 
-    if datetime.datetime.now().second == 5:
+            df = pd.read_csv(r'data.csv',engine = 'python')
 
-        df = pd.read_csv(r'data.csv',engine = 'python')
+            pos = signal(df, x, y)
+            requests.get(telegram_bot+'btc position: '+ str(pos))
 
-        pos = signal(df, x, y)
-        requests.get(telegram_bot+'btc position: '+str(pos))
+            trade(pos)
+    except Exception as Argument:
+        with ThreadSafeFileWriter(log_location) as f:
+            f.write_data(str(datetime.datetime.now()) + ' ' + str(Argument) + '\n')
 
-        trade(pos)
+            time.sleep(15)
 
-        time.sleep(15)
+
+
 
